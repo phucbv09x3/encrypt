@@ -1,11 +1,16 @@
 package com.example.mdvapp
 
 import android.os.Bundle
-import android.os.Handler
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import java.nio.charset.StandardCharsets
+import java.security.KeyFactory
+import java.security.KeyPairGenerator
 import java.security.MessageDigest
+import java.security.SecureRandom
+import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.RSAPrivateKeySpec
+import java.security.spec.X509EncodedKeySpec
 import java.util.*
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
@@ -16,43 +21,46 @@ class MainActivity : AppCompatActivity() {
     private val dataEncrypt =
         "682c56de-9b1d-4e73-a240-3887872face2 "//682c56de-9b1d-4e73-a240-3887872face2
     private val dataEncrypt1 = "682lOPmnGSkKmGNnQMGjLNJGMRRQRQLojlnL"
-    private val dataEncrypt2 = "273966486965867"
-    private val dataEncrypt3 = "yarejcn odw mnNwlahyc(tnh: Rwc): Rwc {\n" +
-            "            eju anbduc = tnh.cxMxdkun().yxf(29) % 35\n" +
-            "            ancdaw anbduc.cxRwc()\n" +
-            "        }"
-
     private var keyStart: Int? = null
-
     lateinit var valueTest: String
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        //Hash : MD5
+        val textMD5 = encryptMD5("Miichisoft")
+        Log.d("encrypMD5", textMD5)
+
+
         val textEncrypt = "Miichisoft-mobile"
         val dataEncryptAES = encryptAES(textEncrypt, "MOBILE")
         Log.d("encryptAES", dataEncryptAES)
 
-        val dataDeEncrypt = deEncryptAES(dataEncryptAES, "MOBILE")
+        val dataDeEncrypt = deCryptAES(dataEncryptAES, "MOBILE")
         Log.d("dataDeEncryptAES", dataDeEncrypt)
 
         val dataEncryptDES = encryptDES(textEncrypt, "MOBILE")
         Log.d("dataEncryptDES", dataEncryptDES)
 
-        val dataDeEncryptDES = deEncryptDES(dataEncryptDES, "MOBILE")
+        val dataDeEncryptDES = deCryptDES(dataEncryptDES, "MOBILE")
         Log.d("dataDeEncryptDES", dataDeEncryptDES)
 
+
+
+
+        Log.d("eEncryptRSA", testRSA())
+        Log.d("edecryptRSA", testDeCryptRSA(testRSA()))
     }
 
     private fun initTest() {
-        var textMD5 = encryptMD5("phuc")
-        Log.d("encrypMD5", "${textMD5}")
-        valueTest = "phuc"
-        Log.d("valueTest:", "$valueTest")
-        Handler().postDelayed({
-            valueTest = "phuc sau"
-            Log.d("valueTest1:", "$valueTest")
-        }, 2000)
 
-        setContentView(R.layout.activity_main)
+//        valueTest = "phuc"
+//        Handler().postDelayed({
+//            valueTest = "phuc sau"
+//            Log.d("valueTest1:", "$valueTest")
+//        }, 2000)
+
+
         val key = 9
         var text = ""
         for (i in dataEncrypt.indices) {
@@ -110,7 +118,7 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun encryptMD5(textEncrypt: String): String {
-        val md5 = MessageDigest.getInstance("SHA-256")
+        val md5 = MessageDigest.getInstance("MD5")//SHA-256
         var sb = StringBuilder()
 
         val hash: ByteArray = md5.digest(textEncrypt.toByteArray(StandardCharsets.UTF_8))
@@ -133,7 +141,7 @@ class MainActivity : AppCompatActivity() {
         return Base64.getEncoder().encodeToString(cipher.doFinal(textEncrypt.toByteArray()))
     }
 
-    private fun deEncryptAES(textEncrypt: String, myKey: String): String {
+    private fun deCryptAES(textEncrypt: String, myKey: String): String {
         val sha = MessageDigest.getInstance("SHA-1")
         var key: ByteArray = myKey.toByteArray(StandardCharsets.UTF_8)
         key = sha.digest(key)
@@ -147,6 +155,7 @@ class MainActivity : AppCompatActivity() {
             )
         )
     }
+
     private fun encryptDES(textEncrypt: String, myKey: String): String {
         val sha = MessageDigest.getInstance("SHA-1")
         var key: ByteArray = myKey.toByteArray(StandardCharsets.UTF_8)
@@ -157,7 +166,8 @@ class MainActivity : AppCompatActivity() {
         cipher.init(Cipher.ENCRYPT_MODE, secretKey)
         return Base64.getEncoder().encodeToString(cipher.doFinal(textEncrypt.toByteArray()))
     }
-    private fun deEncryptDES(textEncrypt: String, myKey: String): String {
+
+    private fun deCryptDES(textEncrypt: String, myKey: String): String {
         val sha = MessageDigest.getInstance("SHA-1")
         var key: ByteArray = myKey.toByteArray(StandardCharsets.UTF_8)
         key = sha.digest(key)
@@ -170,5 +180,36 @@ class MainActivity : AppCompatActivity() {
                 Base64.getDecoder().decode(textEncrypt)
             )
         )
+    }
+
+    private fun testRSA(): String {
+        // val spec = X509EncodedKeySpec("phucsau".toByteArray())
+//        val factory = KeyFactory.getInstance("RSA")
+//
+//        val pubKey = factory.generatePublic(spec)
+//        Log.d("pubKey","${pubKey}")
+//
+
+        val sr = SecureRandom()
+        val kpg = KeyPairGenerator.getInstance("RSA")
+        kpg.initialize(1024, sr)
+        val kp = kpg.genKeyPair()
+        val plKey = kp.public
+        val privateKey = kp.private
+        val cipher = Cipher.getInstance("RSA")
+        cipher.init(Cipher.ENCRYPT_MODE, plKey)
+        val textByte = cipher.doFinal("phuc".toByteArray())
+        return Base64.getEncoder().encodeToString(textByte)
+    }
+    private fun testDeCryptRSA(text : String): String {
+//       val spec = RSAPrivateKeySpec()
+//        val factory = KeyFactory.getInstance("RSA")
+//        val prikey = factory.generatePrivate(spec)
+//        val cipher = Cipher.getInstance("RSA")
+//        cipher.init(Cipher.DECRYPT_MODE,prikey)
+//        return String(
+//            cipher.doFinal(
+//                Base64.getDecoder().decode(text)))
+
     }
 }
