@@ -4,13 +4,12 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import java.nio.charset.StandardCharsets
-import java.security.KeyPairGenerator
-import java.security.MessageDigest
-import java.security.SecureRandom
+import java.security.*
+import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.X509EncodedKeySpec
 import java.util.*
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
-import kotlin.math.pow
 
 
 class MainActivity : AppCompatActivity() {
@@ -40,20 +39,11 @@ class MainActivity : AppCompatActivity() {
         Log.d("dataDeEncryptDES", dataDeEncryptDES)
 
 
-
-
         Log.d("eEncryptRSA", testRSA())
         Log.d("edecryptRSA", testDeCryptRSA(testRSA()))
     }
 
     private fun initTest() {
-
-//        valueTest = "phuc"
-//        Handler().postDelayed({
-//            valueTest = "phuc sau"
-//            Log.d("valueTest1:", "$valueTest")
-//        }, 2000)
-
 
         val key = 9
         var text = ""
@@ -105,38 +95,36 @@ class MainActivity : AppCompatActivity() {
 
     private fun encryptMD5(textEncrypt: String): String {
         val md5 = MessageDigest.getInstance("MD5")//SHA-256
-        var sb = StringBuilder()
-
+        val sb = StringBuilder()
+        //Nhận đầu vào là 1 mảng byte
+        //Md5 chuoi đàu a 128 bit ==> dạng 32 số hexa
         val byteArray: ByteArray = md5.digest(textEncrypt.toByteArray(StandardCharsets.UTF_8))
-
         for (item in byteArray) {
             sb.append(String.format("%02x", item))//%02x
         }
-
         return sb.toString()
     }
 
     private fun encryptAES(textEncrypt: String, myKey: String): String {
         val sha = MessageDigest.getInstance("SHA-1")
-        var key: ByteArray = myKey.toByteArray(StandardCharsets.UTF_8)
+        var key = myKey.toByteArray(StandardCharsets.UTF_8)
         key = sha.digest(key)
         key = key.copyOf(16)
         val secretKey = SecretKeySpec(key, "AES")//Create key
-        val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")//Create Cipher
+        //Create Cipher : this object use encrypt and decrypt
+        val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
+        //ECB : chế độ mã hoá
         cipher.init(Cipher.ENCRYPT_MODE, secretKey)
-        return Base64.getEncoder().encodeToString(cipher.doFinal(textEncrypt.toByteArray()))//ma hoa hay giai ma đeu thuc hien tren byte
-
+        return Base64.getEncoder()
+            .encodeToString(cipher.doFinal(textEncrypt.toByteArray()))
+        //ma hoa hay giai ma đeu thuc hien tren byte
         //chuyen byte sang dang base 64 de hien thi
 
-//        DES = Data Encryption Standard.
-//        ECB = Electronic Codebook mode.
-//        PKCS5Padding = PKCS #5-style paddi
     }
 
     private fun deCryptAES(textEncrypt: String, myKey: String): String {
         val sha = MessageDigest.getInstance("SHA-1")
         var key: ByteArray = myKey.toByteArray(StandardCharsets.UTF_8)
-        Log.d("showMyKey","${key}")
         key = sha.digest(key)
         key = key.copyOf(16)
         val secretKey = SecretKeySpec(key, "AES")
@@ -175,36 +163,36 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    val sr = SecureRandom()
+    private var privateKey: PrivateKey? = null
     private fun testRSA(): String {
-        // val spec = X509EncodedKeySpec("phucsau".toByteArray())
-//        val factory = KeyFactory.getInstance("RSA")
-//
-//        val pubKey = factory.generatePublic(spec)
-//        Log.d("pubKey","${pubKey}")
-//
 
-        val sr = SecureRandom()
         val kpg = KeyPairGenerator.getInstance("RSA")
         kpg.initialize(1024, sr)
         val kp = kpg.genKeyPair()
-        val plKey = kp.public
-        val privateKey = kp.private
+        val publicKey = kp.public
+        privateKey = kp.private
+
+        val spec = X509EncodedKeySpec(publicKey.encoded)
+        val factory = KeyFactory.getInstance("RSA")
+        val pubKey = factory.generatePublic(spec)
         val cipher = Cipher.getInstance("RSA")
-        cipher.init(Cipher.ENCRYPT_MODE, plKey)
+        cipher.init(Cipher.ENCRYPT_MODE, pubKey)
         val textByte = cipher.doFinal("phuc".toByteArray())
         return Base64.getEncoder().encodeToString(textByte)
     }
 
-    private fun testDeCryptRSA(text: String): String {
-//       val spec = RSAPrivateKeySpec()
-//        val factory = KeyFactory.getInstance("RSA")
-//        val prikey = factory.generatePrivate(spec)
-//        val cipher = Cipher.getInstance("RSA")
-//        cipher.init(Cipher.DECRYPT_MODE,prikey)
-//        return String(
-//            cipher.doFinal(
-//                Base64.getDecoder().decode(text)))
 
-        return ""
+    private fun testDeCryptRSA(text: String): String {
+        val spec = PKCS8EncodedKeySpec(privateKey?.encoded)
+        val factory = KeyFactory.getInstance("RSA")
+        val prikey = factory.generatePrivate(spec)
+        val cipher = Cipher.getInstance("RSA")
+        cipher.init(Cipher.DECRYPT_MODE, prikey)
+        return String(
+            cipher.doFinal(
+                Base64.getDecoder().decode(text)
+            )
+        )
     }
 }
