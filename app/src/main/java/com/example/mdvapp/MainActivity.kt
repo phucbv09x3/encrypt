@@ -55,8 +55,8 @@ class MainActivity : AppCompatActivity() {
 
 
 
-        Log.d("encryptString", encryptString("phuc","phuctest"))
-        Log.d("encryptString", deCrypt(encryptString("phuc","phuctest"),"phuctest"))
+        Log.d("encryptString", encryptString("phuc", "phuctest"))
+        Log.d("encryptString", deCrypt(encryptString("phuc", "phuctest"), "phuctest"))
     }
 
     private fun dichVong(dataCrypt: String, encryptOrDecrypt: Int): String {
