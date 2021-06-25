@@ -11,6 +11,8 @@ import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import java.util.*
 import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 
@@ -24,6 +26,10 @@ class MainActivity : AppCompatActivity() {
 
 
 
+        //tét
+        createTest()
+        Log.d("testEnc","${testEncrypt("phuc")}")
+        Log.d("testEnca","${testEncrypt1(testEncrypt("phuc"))}")
 
         //Hash : MD5
         val textMD5 = hashFunc("Miichisoft")
@@ -213,17 +219,17 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    var keyStore: KeyStore? = null
-    var keyPair: KeyPair? = null
-    private fun createKeyStore(alias: String) {
+    private var keyStore: KeyStore? = null
+    private var keyPair: KeyPair? = null
+    private fun createKeyStore(keyStoreAlias: String) {
         keyStore = KeyStore.getInstance("AndroidKeyStore")
         keyStore?.load(null)
 
         //create Key
-        if (!keyStore!!.containsAlias(alias)) {
+        if (!keyStore!!.containsAlias(keyStoreAlias)) {
             val keyPairGenerator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA)
             val keyGenParameterSpec = KeyGenParameterSpec.Builder(
-                alias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+                keyStoreAlias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
             )
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
                 .setDigests(KeyProperties.DIGEST_SHA1)
@@ -235,8 +241,8 @@ class MainActivity : AppCompatActivity() {
     }
     private fun getKeyInfo(alias: String): String {
         val privateKey = ((keyStore?.getEntry(alias, null)) as KeyStore.PrivateKeyEntry).privateKey
-        val cert = keyStore?.getCertificate(alias)
-        val publicKey = cert?.publicKey
+        val certificate = keyStore?.getCertificate(alias)
+        val publicKey = certificate?.publicKey
 //        val privateKeyBytes: ByteArray = android.util.Base64.encode(privateKey?.encoded, android.util.Base64.DEFAULT)
 //        val priKeyString = String(privateKeyBytes)
         val publicKeyBytes: ByteArray =
@@ -277,6 +283,51 @@ class MainActivity : AppCompatActivity() {
         }
         Log.d("getAliases", "${keyAlis}")
     }
+
+
+
+    private var keyStoreTest : KeyStore? =null
+    private fun createTest(){
+        keyStoreTest = KeyStore.getInstance("AndroidKeyStore")
+        val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,"AndroidKeyStore")
+        val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
+        keyStoreTest?.load(null)
+        keyGenerator.init(
+            KeyGenParameterSpec.Builder("keyAlias",
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+                .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setDigests(KeyProperties.DIGEST_SHA1)
+                .build()
+        )
+        keyGenerator.generateKey()
+
+    }
+
+    private fun testEncrypt(text : String) : String{
+        keyStoreTest?.load(null)
+        val key1 = keyStoreTest?.getEntry("keyAlias",null) as KeyStore.SecretKeyEntry
+        val key = key1.secretKey
+        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        cipher.init(Cipher.ENCRYPT_MODE,key)
+        val textByte = cipher.doFinal(text.toByteArray())
+        return Base64.getEncoder().encodeToString(textByte)
+    }
+    private fun testEncrypt1(text: String) : String{
+        val key1 = keyStoreTest?.getEntry("keyAlias",null) as KeyStore.SecretKeyEntry
+        val key = key1.secretKey
+        val spect= IvParameterSpec(text.toByteArray())
+        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        cipher.init(Cipher.DECRYPT_MODE,key,spect)
+        return String(
+            cipher.doFinal(
+                Base64.getDecoder().decode(text)
+            )
+        )
+    }
+
+
+
 }
 
 
