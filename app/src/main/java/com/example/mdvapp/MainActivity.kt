@@ -7,71 +7,71 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import java.nio.charset.StandardCharsets
 import java.security.*
-import java.security.spec.PKCS8EncodedKeySpec
-import java.security.spec.X509EncodedKeySpec
 import java.util.*
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
-import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 
 class MainActivity : AppCompatActivity() {
-    private val dataEncrypt =
-        "682c56de-9b1d-4e73-a240-3887872face2 "
-    private var keyStart: Int? = null
+    private var keyNumber: Int? = null
+    private val textEncrypt = "Miichisoft-mobile-present"
+    private val myKey = "MOBILE"
+    private val keyStoreAliasRsa = "android"
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
 
+        val dataAfterEncryptDV = roundTranslation(textEncrypt, 0)
+        Log.d("encryptDV", dataAfterEncryptDV)
+        Log.d("decryptDV", roundTranslation(dataAfterEncryptDV, 1))
 
-        //tét
-        createTest()
-        Log.d("testEnc","${testEncrypt("phuc")}")
-        Log.d("testEnca","${testEncrypt1(testEncrypt("phuc"))}")
-
-        //Hash : MD5
-        val textMD5 = hashFunc("Miichisoft")
-        Log.d("encrypMD5", textMD5)
+        //Hash
+        val hashFunc = hashFunc(textEncrypt)
+        Log.d("hashFunc", hashFunc)
 
 
-        val textEncrypt = "Miichisoft-mobile"
-        val dataEncryptAES = encryptAES(textEncrypt, "MOBILE")
-        Log.d("encryptAES", dataEncryptAES)
-
-        val dataDeEncrypt = deCryptAES(dataEncryptAES, "MOBILE")
-        Log.d("dataDeEncryptAES", dataDeEncrypt)
-
-        val dataEncryptDES = encryptDES(textEncrypt, "MOBILE")
-        Log.d("dataEncryptDES", dataEncryptDES)
-
-        val dataDeEncryptDES = deCryptDES(dataEncryptDES, "MOBILE")
-        Log.d("dataDeEncryptDES", dataDeEncryptDES)
+        //AES
+        val dataAfterEncryptAES = enCryptAES(textEncrypt, myKey)
+        Log.d("encryptAES", dataAfterEncryptAES)
+        Log.d("deEncryptAES", deCryptAES(dataAfterEncryptAES, myKey))
 
 
-        Log.d("eEncryptRSA", testEncryptRSA("phuc sau"))
-        Log.d("edecryptRSA", testDeCryptRSA(testEncryptRSA("phuc sau")))
+        //AES
+//        val dataEncryptAES = encryptAES(textEncrypt, myKey)
+//        Log.d("encryptAES", dataEncryptAES)
+//
+//        val dataDeEncrypt = deCryptAES(dataEncryptAES, myKey)
+//        Log.d("dataDeEncryptAES", dataDeEncrypt)
 
-        Log.d("dichVong", "${dichVong(dataEncrypt, 0)}")
-        Log.d("dichVong", "${dichVong(dichVong(dataEncrypt, 0), 1)}")
+        //DES
+//        val dataEncryptDES = encryptDES(textEncrypt, myKey)
+//        Log.d("dataEncryptDES", dataEncryptDES)
+//
+//        val dataDeEncryptDES = deCryptDES(dataEncryptDES, myKey)
+//        Log.d("dataDeEncryptDES", dataDeEncryptDES)
 
 
+        //RSA
+        val dataAfterEncryptRSA = testEncryptRSA(textEncrypt)
+        Log.d("eEncryptRSA", dataAfterEncryptRSA)
+        Log.d("decryptRSA", testDeCryptRSA(dataAfterEncryptRSA))
 
-        Log.d("encryptString", encryptString("phuc", "phuctest"))
-        Log.d("encryptString", deCrypt(encryptString("phuc", "phuctest"), "phuctest"))
 
-
-
-
-        createKeyStore("phuctest")
-        getKeyInfo("phuctest")
-        getAliases()
-        Log.d("getAliases", "${getKeyInfo("phuctest")}")
+        //AndroidKeyStore
+        createKeyStore(keyStoreAliasRsa)
+        val dataEncryptRSAKeyStore = encryptStringKeyStore(textEncrypt, keyStoreAliasRsa)
+        Log.d("encryptString", dataEncryptRSAKeyStore)
+        Log.d(
+            "encryptString",
+            deCryptStringKeyStore(
+                dataEncryptRSAKeyStore,
+                keyStoreAliasRsa
+            )
+        )
     }
 
-    private fun dichVong(dataCrypt: String, encryptOrDecrypt: Int): String {
-
+    private fun roundTranslation(dataCrypt: String, encryptOrDecrypt: Int): String {
         val key = 9
         var text = ""
         for (i in dataCrypt.indices) {
@@ -79,17 +79,17 @@ class MainActivity : AppCompatActivity() {
             var y = if (encryptOrDecrypt == 0) (chars + key % 26) else (chars - key % 26)
             when (chars) {
                 in 65..90 -> {
-                    keyStart = 0
+                    keyNumber = 0
                 }
                 in 97..122 -> {
-                    keyStart = 32
+                    keyNumber = 32
                 }
                 else -> {
                     y = chars
                 }
             }
 
-            keyStart?.let {
+            keyNumber?.let {
                 if (y > (90 + it)) {
                     y -= 26
                 }
@@ -97,32 +97,16 @@ class MainActivity : AppCompatActivity() {
                     y += 26
                 }
             }
-            keyStart = null
+            keyNumber = null
             text += y.toChar()
 
         }
         return text
     }
 
-//    private fun encrypt(key: Int): Int {
-//        //Todo : chọn p =5,q=7 => n =35 ,2(n) = 24
-//        //Chọn e =5 vì UCLN(5,24)=1
-//        //e*d-1 chia het cho 24 , tìm d=29
-//        val result = key.toDouble().pow(5) % 35
-//        return result.toInt()
-//    }
-//
-//    private fun deEncrypt(key: Int): Int {
-//        val result = key.toDouble().pow(29) % 35
-//        return result.toInt()
-//    }
-
-
     private fun hashFunc(textEncrypt: String): String {
         val md5 = MessageDigest.getInstance("MD5")//SHA-256
         val sb = StringBuilder()
-        //Nhận đầu vào là 1 mảng byte
-        //Md5 chuoi đàu a 128 bit ==> dạng 32 số hexar
         val byteArray: ByteArray = md5.digest(textEncrypt.toByteArray(StandardCharsets.UTF_8))
         for (item in byteArray) {
             sb.append(String.format("%02x", item))//convert to hexa
@@ -130,60 +114,61 @@ class MainActivity : AppCompatActivity() {
         return sb.toString()
     }
 
-    //var secretKeySpec : SecretKeySpec?=null
-    private fun encryptAES(textEncrypt: String, myKey: String): String {
-        val sha = MessageDigest.getInstance("SHA-256")
-        var key = myKey.toByteArray(StandardCharsets.UTF_8)
-        key = sha.digest(key)
-        key = key.copyOf(16)
-        //secretKeySpec = SecretKeySpec(key, "AES")
-        val secretKey = SecretKeySpec(key, "AES")
-        val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
-        return Base64.getEncoder()
-            .encodeToString(cipher.doFinal(textEncrypt.toByteArray()))
-    }
 
-    private fun deCryptAES(textEncrypt: String, myKey: String): String {
-        val sha = MessageDigest.getInstance("SHA-256")
-        var key: ByteArray = myKey.toByteArray(StandardCharsets.UTF_8)
-        key = sha.digest(key)
-        key = key.copyOf(16)
-        val secretKey = SecretKeySpec(key, "AES")
-        val cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING")
-        cipher.init(Cipher.DECRYPT_MODE, secretKey)
-        return String(
-            cipher.doFinal(
-                Base64.getDecoder().decode(textEncrypt)
-            )
-        )
-    }
+//    private fun encryptAES(textEncrypt: String, myKey: String): String {
+//        val sha = MessageDigest.getInstance("SHA-256")
+//        var key = myKey.toByteArray(StandardCharsets.UTF_8)
+//        key = sha.digest(key)
+//        key = key.copyOf(16)
+//        val secretKey = SecretKeySpec(key, "AES")
+//        val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
+//        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+//        return Base64.getEncoder()
+//            .encodeToString(cipher.doFinal(textEncrypt.toByteArray()))
+//    }
+//
+//    private fun deCryptAES(textEncrypt: String, myKey: String): String {
+//        val sha = MessageDigest.getInstance("SHA-256")
+//        var key: ByteArray = myKey.toByteArray(StandardCharsets.UTF_8)
+//        key = sha.digest(key)
+//        key = key.copyOf(16)
+//        val secretKey = SecretKeySpec(key, "AES")
+//        val cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING")
+//        cipher.init(Cipher.DECRYPT_MODE, secretKey)
+//        return String(
+//            cipher.doFinal(
+//                Base64.getDecoder().decode(textEncrypt)
+//            )
+//        )
+//    }
 
-    private fun encryptDES(textEncrypt: String, myKey: String): String {
-        val sha = MessageDigest.getInstance("SHA-256")
-        var key: ByteArray = myKey.toByteArray(StandardCharsets.UTF_8)
-        key = sha.digest(key)
-        key = key.copyOf(8)
-        val secretKey = SecretKeySpec(key, "DES")
-        val cipher = Cipher.getInstance("DES/ECB/PKCS5Padding")
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
-        return Base64.getEncoder().encodeToString(cipher.doFinal(textEncrypt.toByteArray()))
-    }
-
-    private fun deCryptDES(textEncrypt: String, myKey: String): String {
-        val sha = MessageDigest.getInstance("SHA-256")
-        var key: ByteArray = myKey.toByteArray(StandardCharsets.UTF_8)
-        key = sha.digest(key)
-        key = key.copyOf(8)
-        val secretKey = SecretKeySpec(key, "DES")
-        val cipher = Cipher.getInstance("DES/ECB/PKCS5PADDING")
-        cipher.init(Cipher.DECRYPT_MODE, secretKey)
-        return String(
-            cipher.doFinal(
-                Base64.getDecoder().decode(textEncrypt)
-            )
-        )
-    }
+//    private fun encryptDES(textEncrypt: String, myKey: String): String {
+//        val sha = MessageDigest.getInstance("SHA-256")
+//        var key: ByteArray = myKey.toByteArray(StandardCharsets.UTF_8)
+//        key = sha.digest(key)
+//        key = key.copyOf(8)
+//        val secretKey = SecretKeySpec(key, "DES")
+//        val cipher = Cipher.getInstance("DES/ECB/PKCS5Padding")
+//        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+//        return Base64.getEncoder().encodeToString(cipher.doFinal(textEncrypt.toByteArray()))
+//    }
+//
+//    private fun deCryptDES(textEncrypt: String, myKey: String): String {
+//        val sha = MessageDigest.getInstance("SHA-256")
+//        var key: ByteArray = myKey.toByteArray(StandardCharsets.UTF_8)
+//        key = sha.digest(key)
+//        key = key.copyOf(8)
+//
+//        val secretKey = SecretKeySpec(key, "DES")
+//        Log.d("secretKey","$secretKey")
+//        val cipher = Cipher.getInstance("DES/ECB/PKCS5PADDING")
+//        cipher.init(Cipher.DECRYPT_MODE, secretKey)
+//        return String(
+//            cipher.doFinal(
+//                Base64.getDecoder().decode(textEncrypt)
+//            )
+//        )
+//    }
 
     private val sr = SecureRandom()
     private var privateKey: PrivateKey? = null
@@ -193,24 +178,18 @@ class MainActivity : AppCompatActivity() {
         val kp = kpg.genKeyPair()
         val publicKey = kp.public
         privateKey = kp.private
+        Log.d("privateKey", "$privateKey")
 
-        val spec = X509EncodedKeySpec(publicKey.encoded)
-        val factory = KeyFactory.getInstance("RSA")
-        val pubKey = factory.generatePublic(spec)
         val cipher = Cipher.getInstance("RSA")
-        cipher.init(Cipher.ENCRYPT_MODE, pubKey)
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
         val textByte = cipher.doFinal(textEncrypt.toByteArray())
         return Base64.getEncoder().encodeToString(textByte)
     }
 
 
     private fun testDeCryptRSA(text: String): String {
-        val spec = PKCS8EncodedKeySpec(privateKey?.encoded)
-        val factory = KeyFactory.getInstance("RSA")
-        val prikey = factory.generatePrivate(spec)
-        Log.d("prikey","${prikey}")
         val cipher = Cipher.getInstance("RSA")
-        cipher.init(Cipher.DECRYPT_MODE, prikey)
+        cipher.init(Cipher.DECRYPT_MODE, privateKey)
         return String(
             cipher.doFinal(
                 Base64.getDecoder().decode(text)
@@ -218,19 +197,38 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun enCryptAES(textEncrypt: String, myKey: String): String {
+        val secretKeySpec = SecretKeySpec(myKey.toByteArray().copyOf(16), "AES")
+        val cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING")
+        cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec)
+        val byteArray = cipher.doFinal(textEncrypt.toByteArray())
+        return (Base64.getEncoder().encodeToString(byteArray))
+    }
 
+    private fun deCryptAES(text: String, myKey: String): String {
+        val secretKeySpec = SecretKeySpec(myKey.toByteArray().copyOf(16), "AES")
+        val cipher = Cipher.getInstance("AES/ECB/PKCS5PADDING")
+        cipher.init(Cipher.DECRYPT_MODE, secretKeySpec)
+        return String(
+            cipher.doFinal(
+                Base64.getDecoder().decode(text)
+            )
+        )
+    }
+
+    ////AndroidKeyStore
     private var keyStore: KeyStore? = null
     private var keyPair: KeyPair? = null
     private fun createKeyStore(keyStoreAlias: String) {
         keyStore = KeyStore.getInstance("AndroidKeyStore")
         keyStore?.load(null)
 
-        //create Key
         if (!keyStore!!.containsAlias(keyStoreAlias)) {
             val keyPairGenerator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA)
             val keyGenParameterSpec = KeyGenParameterSpec.Builder(
                 keyStoreAlias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
             )
+                .setKeySize(256)
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
                 .setDigests(KeyProperties.DIGEST_SHA1)
                 .build()
@@ -239,27 +237,19 @@ class MainActivity : AppCompatActivity() {
         }
 
     }
-    private fun getKeyInfo(alias: String): String {
-        val privateKey = ((keyStore?.getEntry(alias, null)) as KeyStore.PrivateKeyEntry).privateKey
-        val certificate = keyStore?.getCertificate(alias)
-        val publicKey = certificate?.publicKey
-//        val privateKeyBytes: ByteArray = android.util.Base64.encode(privateKey?.encoded, android.util.Base64.DEFAULT)
-//        val priKeyString = String(privateKeyBytes)
-        val publicKeyBytes: ByteArray =
-            android.util.Base64.encode(publicKey?.encoded, android.util.Base64.DEFAULT)
-        return String(publicKeyBytes)
 
-    }
-
-    private fun encryptString(text: String, alias: String): String {
+    private fun encryptStringKeyStore(text: String, alias: String): String {
         val publicKey = keyStore?.getCertificate(alias)?.publicKey
         val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
+        publicKey?.let {
+            cipher.init(Cipher.ENCRYPT_MODE, it)
+        }
+
         val textByte = cipher.doFinal(text.toByteArray())
         return Base64.getEncoder().encodeToString(textByte)
     }
 
-    private fun deCrypt(text: String, alias: String): String {
+    private fun deCryptStringKeyStore(text: String, alias: String): String {
         val privateKeyEntry = keyStore?.getEntry(alias, null) as KeyStore.PrivateKeyEntry
         val privateKey = privateKeyEntry.privateKey
         val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
@@ -271,62 +261,78 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun getAliases() {
-        var aliasesString = ""
-        var keyAlis = arrayListOf<String>()
-        val aliases = keyStore?.aliases()
-        if (aliases != null) {
-            while (aliases.hasMoreElements()) {
-                keyAlis.add(aliases.nextElement())
 
-            }
-        }
-        Log.d("getAliases", "${keyAlis}")
-    }
+//    private var keyStoreTest: KeyStore? = null
+//    private var keySecrect: SecretKey? = null
+//    private fun createTestKeyStoreAES() {
+//        keyStoreTest = KeyStore.getInstance("AndroidKeyStore")
+//        keyStoreTest?.load(null)
+//        val keyGenerator =
+//            KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
+//        val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
+//
+//        keyGenerator.init(
+//            KeyGenParameterSpec.Builder(
+//                "keyAlias",
+//                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+//            )
+//                .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+//                .setRandomizedEncryptionRequired(false)
+//                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
+//                .build()
+//        )
+//        keySecrect = keyGenerator.generateKey()
+//    }
 
-
-
-    private var keyStoreTest : KeyStore? =null
-    private fun createTest(){
-        keyStoreTest = KeyStore.getInstance("AndroidKeyStore")
-        val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,"AndroidKeyStore")
-        val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
-        keyStoreTest?.load(null)
-        keyGenerator.init(
-            KeyGenParameterSpec.Builder("keyAlias",
-            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-                .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                .setDigests(KeyProperties.DIGEST_SHA1)
-                .build()
-        )
-        keyGenerator.generateKey()
-
-    }
-
-    private fun testEncrypt(text : String) : String{
-        keyStoreTest?.load(null)
-        val key1 = keyStoreTest?.getEntry("keyAlias",null) as KeyStore.SecretKeyEntry
-        val key = key1.secretKey
-        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-        cipher.init(Cipher.ENCRYPT_MODE,key)
-        val textByte = cipher.doFinal(text.toByteArray())
-        return Base64.getEncoder().encodeToString(textByte)
-    }
-    private fun testEncrypt1(text: String) : String{
-        val key1 = keyStoreTest?.getEntry("keyAlias",null) as KeyStore.SecretKeyEntry
-        val key = key1.secretKey
-        val spect= IvParameterSpec(text.toByteArray())
-        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-        cipher.init(Cipher.DECRYPT_MODE,key,spect)
-        return String(
-            cipher.doFinal(
-                Base64.getDecoder().decode(text)
-            )
-        )
-    }
+//    private fun testEncrypt(text: String?): String {
+//        keyStoreTest?.load(null)
+//        val key1 = keyStoreTest?.getEntry("keyAlias", null) as KeyStore.SecretKeyEntry
+//        val key = key1.secretKey
+//        Log.d("keyNull", "${key}")
+//        val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding")
+//        cipher.init(Cipher.ENCRYPT_MODE, keySecrect!!)
+//        val textByte = cipher.doFinal(text?.toByteArray())
+//        return Base64.getEncoder().encodeToString(textByte)
+//    }
+//
+//    //
+//    private fun testEncrypt1(text: String?): String {
+//        val key1 = keyStoreTest?.getEntry("keyAlias", null) as KeyStore.SecretKeyEntry
+//        val key = key1.secretKey
+//        val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding")
+//        keySecrect?.let {
+//            cipher.init(Cipher.DECRYPT_MODE, it, IvParameterSpec(cipher.iv))
+//        }
+//
+//        return String(
+//            cipher.doFinal(
+//                Base64.getDecoder().decode(text)
+//            ), StandardCharsets.UTF_8
+//        )
+//    }
 
 
+//    private fun getKeyInfo(): String {
+//        val secretKey = ((keyStoreTest?.getEntry("keyAlias", null)) as KeyStore.SecretKeyEntry)
+//
+////        val privateKeyBytes: ByteArray = android.util.Base64.encode(privateKey?.encoded, android.util.Base64.DEFAULT)
+////        val priKeyString = String(privateKeyBytes)
+//        val publicKeyBytes: ByteArray =
+//            android.util.Base64.encode(secretKey.secretKey.toString().toByteArray(), android.util.Base64.DEFAULT)
+//        return String(publicKeyBytes)
+//    }
+//    private fun getAliases() {
+//        var aliasesString = ""
+//        var keyAlis = arrayListOf<String>()
+//        val aliases = keyStore?.aliases()
+//        if (aliases != null) {
+//            while (aliases.hasMoreElements()) {
+//                keyAlis.add(aliases.nextElement())
+//
+//            }
+//        }
+//        Log.d("getAliases", "${keyAlis}")
+//    }
 
 }
 
