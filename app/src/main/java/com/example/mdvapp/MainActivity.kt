@@ -106,12 +106,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun hashFunc(textEncrypt: String): String {
         val md5 = MessageDigest.getInstance("MD5")//SHA-256
-        val sb = StringBuilder()
+        var sbb = ""
         val byteArray: ByteArray = md5.digest(textEncrypt.toByteArray(StandardCharsets.UTF_8))
         for (item in byteArray) {
-            sb.append(String.format("%02x", item))//convert to hexa
+            sbb += String.format("%02x", item)
         }
-        return sb.toString()
+        Log.d("sbb", "$sbb")
+        return sbb
     }
 
 
@@ -228,9 +229,9 @@ class MainActivity : AppCompatActivity() {
             val keyGenParameterSpec = KeyGenParameterSpec.Builder(
                 keyStoreAlias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
             )
-                .setKeySize(256)
+
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1)
-                .setDigests(KeyProperties.DIGEST_SHA1)
+                .setDigests(KeyProperties.DIGEST_SHA256)
                 .build()
             keyPairGenerator.initialize(keyGenParameterSpec)
             keyPair = keyPairGenerator.genKeyPair()
@@ -240,7 +241,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun encryptStringKeyStore(text: String, alias: String): String {
         val publicKey = keyStore?.getCertificate(alias)?.publicKey
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")//ecb Electronic Codebook mode.
         publicKey?.let {
             cipher.init(Cipher.ENCRYPT_MODE, it)
         }
@@ -345,3 +346,6 @@ class MainActivity : AppCompatActivity() {
 
 //publicKey: must use RSAPublickey or X509EncodedKeySpec
 //privateKey : must RSAPrivatekey or PKCS8EncodedKeySpec
+
+
+///The block size is a property of the used cipher algorithm. For AES it is always 16 bytes
